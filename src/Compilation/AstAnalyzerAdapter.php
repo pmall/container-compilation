@@ -30,10 +30,10 @@ final class AstAnalyzerAdapter implements ClosureCompilerInterface
     {
         $analysis = $this->analyzer->analyze($closure);
 
-        if (count($analysis['context']) > 0) {
-            throw new \LogicException('Closures with context are not compilable');
+        if (count($analysis['context']) == 0) {
+            return $analysis['code'];
         }
 
-        return $analysis['code'];
+        throw new \LogicException('Closures with context are not compilable');
     }
 }

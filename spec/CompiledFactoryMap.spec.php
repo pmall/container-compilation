@@ -2,208 +2,235 @@
 
 use function Eloquent\Phony\Kahlan\mock;
 
+use org\bovigo\vfs\vfsStream;
+
 use Test\TestFactory;
 use Test\TestCompilableFactory;
 
 use Quanta\Container\CompiledFactoryMap;
 use Quanta\Container\FactoryMapInterface;
 
-require_once __DIR__ . '/test/classes.php';
+require_once __DIR__ . '/.test/classes.php';
 
 describe('CompiledFactoryMap', function () {
 
     beforeEach(function () {
 
-        $this->path = sys_get_temp_dir() . '/quanta-test';
+        $this->contents = <<<'EOT'
+<?php
 
-        if (file_exists($this->path)) unlink($this->path);
+return [
+    'a' => function () { return 'a'; },
+    'b' => function () { return 'b'; },
+    'c' => function () { return 'c'; },
+];
 
-        $this->delegate = mock(FactoryMapInterface::class);
+EOT;
 
     });
 
-    describe('->factories()', function () {
+    beforeEach(function () {
 
-        context('when compilation file is writable', function () {
+        $this->delegate = mock(FactoryMapInterface::class);
 
-            context('when the delegate does not provide any factory', function () {
+        $this->root = __DIR__ . '/.test/storage';
+        $this->path = $this->root . '/factories.php';
 
-                beforeEach(function () {
+        chmod($this->root, 0755);
 
-                    $this->delegate->factories->returns([]);
+        if (file_exists($this->path)) unlink($this->path);
+
+    });
+
+    afterEach(function () {
+
+        if (file_exists($this->path)) unlink($this->path);
+
+    });
+
+    context('when the cache is set to true', function () {
+
+        beforeEach(function () {
+
+            $this->map = new CompiledFactoryMap($this->delegate->get(), true, $this->path);
+
+        });
+
+        it('should implement FactoryMapInterface', function () {
+
+            expect($this->map)->toBeAnInstanceOf(FactoryMapInterface::class);
+
+        });
+
+        describe('->factories()', function () {
+
+            context('when the compiled factories file does not exits', function () {
+
+                context('when the parent directory is not writable', function () {
+
+                    it('should throw a RuntimeException', function () {
+
+                        chmod($this->root, 0444);
+
+                        expect([$this->map, 'factories'])->toThrow(new RuntimeException);
+
+                    });
 
                 });
 
-                it('should return an empty array', function () {
+                context('when the parent directory is writable', function () {
 
-                    foreach ([true, false] as $cache) {
-                        $map = new CompiledFactoryMap($this->delegate->get(), $cache, $this->path);
+                    context('when the array returned by the delegate ->factories() method is empty', function () {
 
-                        $test = $map->factories();
+                        beforeEach(function () {
 
-                        expect($test)->toEqual([]);
-                    }
+                            $this->delegate->factories->returns([]);
 
-                });
+                        });
 
-                it('should create a compiled file returning an empty array', function () {
+                        it('should return an empty array', function () {
 
-                    foreach ([true, false] as $cache) {
-                        $map = new CompiledFactoryMap($this->delegate->get(), $cache, $this->path);
+                            $test = $this->map->factories();
 
-                        $map->factories();
+                            expect($test)->toEqual([]);
 
-                        $test = require $this->path;
+                        });
 
-                        expect($test)->toEqual([]);
-                    }
+                        it('should write a compiled factory file returning an empty array', function () {
+
+                            $this->map->factories();
+
+                            expect(file_exists($this->path))->toBeTruthy();
+
+                            $test = require $this->path;
+
+                            expect($test)->toEqual([]);
+
+                        });
+
+                    });
+
+                    context('when the array returned by the delegate ->factories() method is not empty', function () {
+
+                        context('when all factories provided by the delegate are compilable', function () {
+
+                            beforeEach(function () {
+
+                                $this->delegate->factories->returns([
+                                    'id1' => $this->factory1 = new TestCompilableFactory('factory'),
+                                    'id2' => $this->factory2 = ['\\Test\\TestFactory', 'createStatic'],
+                                    'id3' => $this->factory3 = function () { return 'value'; },
+                                ]);
+
+                            });
+
+                            it('should return the array of factories provided by the delegate', function () {
+
+                                $test = $this->map->factories();
+
+                                expect($test)->toBeAn('array');
+                                expect($test)->toHaveLength(3);
+                                expect($test['id1'])->toEqual($this->factory1);
+                                expect($test['id2'])->toEqual($this->factory2);
+                                expect($test['id3']())->toEqual('value');
+
+                            });
+
+                            it('should write a compiled factory file returning the array of factories provided by the delegate', function () {
+
+                                $this->map->factories();
+
+                                expect(file_exists($this->path))->toBeTruthy();
+
+                                $test = require $this->path;
+
+                                expect($test)->toBeAn('array');
+                                expect($test)->toHaveLength(3);
+                                expect($test['id1'])->toEqual($this->factory1);
+                                expect($test['id2'])->toEqual($this->factory2);
+                                expect($test['id3']())->toEqual('value');
+
+                            });
+
+                        });
+
+                        context('when one factory provided by the delegate is not compilable', function () {
+
+                            beforeEach(function () {
+
+                                $context = 'context';
+
+                                $this->delegate->factories->returns([
+                                    'id1' => new TestCompilableFactory('factory1'),
+                                    'id2' => function () use ($context) {},
+                                    'id3' => new TestCompilableFactory('factory3'),
+                                ]);
+
+                            });
+
+                            it('should throw a LogicException', function () {
+
+                                expect([$this->map, 'factories'])->toThrow(new LogicException);
+
+                            });
+
+                            it('should not create a compiled factory file', function () {
+
+                                try { $this->map->factories(); }
+
+                                catch (Throwable $e) {}
+
+                                expect(file_exists($this->path))->toBeFalsy();
+
+                            });
+
+                        });
+
+                    });
 
                 });
 
             });
 
-            context('when the delegate provides at least one factory', function () {
+            context('when the compiled factories file exists', function () {
 
                 beforeEach(function () {
 
-                    $this->factories = [
-                        'factory1' => new TestCompilableFactory('factory1'),
-                        'factory2' => new TestCompilableFactory('factory2'),
-                        'factory3' => new TestCompilableFactory('factory3'),
-                        'factory4' => ['\\Test\\TestFactory', 'createStatic'],
-                        'factory5' => function () { return 'value'; },
-                    ];
-
-                    $this->delegate->factories->returns($this->factories);
+                    file_put_contents($this->path, $this->contents);
 
                 });
 
-                context('when all factories provided by the delegate are compilable', function () {
+                it('should not call the delegate ->factories() method', function () {
 
-                    it('should return the delegate factories', function () {
+                    $this->map->factories();
 
-                        foreach ([true, false] as $cache) {
-                            $map = new CompiledFactoryMap($this->delegate->get(), $cache, $this->path);
-
-                            $test = $map->factories();
-
-                            expect($test)->toBeAn('array');
-                            expect($test)->toHaveLength(5);
-                            expect($test['factory1'])->toEqual($this->factories['factory1']);
-                            expect($test['factory2'])->toEqual($this->factories['factory2']);
-                            expect($test['factory3'])->toEqual($this->factories['factory3']);
-                            expect($test['factory4'])->toEqual($this->factories['factory4']);
-                            expect($test['factory5']())->toEqual($this->factories['factory5']());
-                        }
-
-                    });
-
-                    it('should return the same array of factories on every call', function () {
-
-                        foreach ([true, false] as $cache) {
-                            $map = new CompiledFactoryMap($this->delegate->get(), $cache, $this->path);
-
-                            $test1 = $map->factories();
-                            $test2 = $map->factories();
-
-                            expect($test1)->toBeAn('array');
-                            expect($test2)->toBeAn('array');
-                            expect($test1)->toHaveLength(5);
-                            expect($test2)->toHaveLength(5);
-                            expect($test1['factory1'])->toEqual($test1['factory1']);
-                            expect($test1['factory2'])->toEqual($test1['factory2']);
-                            expect($test1['factory3'])->toEqual($test1['factory3']);
-                            expect($test1['factory4'])->toEqual($test1['factory4']);
-                            expect($test1['factory5']())->toEqual($test2['factory5']());
-                        }
-
-                    });
-
-                    context('when the cache option is set to false', function () {
-
-                        it('should write to the file only on every call', function () {
-
-                            $map = new CompiledFactoryMap($this->delegate->get(), false, $this->path);
-
-                            $map->factories();
-
-                            $test1 = file_get_contents($this->path);
-
-                            $this->delegate->factories->returns([]);
-
-                            $map->factories();
-
-                            $test2 = file_get_contents($this->path);
-
-                            expect($test1)->not->toEqual($test2);
-
-                        });
-
-                    });
-
-                    context('when the cache option is set to true', function () {
-
-                        it('should write to the file only on the first call', function () {
-
-                            $map = new CompiledFactoryMap($this->delegate->get(), true, $this->path);
-
-                            $map->factories();
-
-                            $test1 = file_get_contents($this->path);
-
-                            $this->delegate->factories->returns([]);
-
-                            $map->factories();
-
-                            $test2 = file_get_contents($this->path);
-
-                            expect($test1)->toEqual($test2);
-
-                        });
-
-                    });
+                    $this->delegate->factories->never()->called();
 
                 });
 
-                context('when one factory is an array representing a method call', function () {
+                it('should return the array of factories contained in the compiled factories file', function () {
 
-                    it('should throw a LogicException', function () {
+                    $test = $this->map->factories();
 
-                        foreach ([true, false] as $cache) {
-                            $map = new CompiledFactoryMap($this->delegate->get(), $cache, $this->path);
-
-                            $this->delegate->factories->returns([
-                                'factory1' => new TestCompilableFactory('factory1'),
-                                'factory2' => [new TestFactory('factory2'), 'create'],
-                                'factory3' => new TestCompilableFactory('factory3'),
-                            ]);
-
-                            expect([$map, 'factories'])->toThrow(new LogicException);
-                        }
-
-                    });
+                    expect($test)->toBeAn('array');
+                    expect($test)->toHaveLength(3);
+                    expect($test['a']())->toEqual('a');
+                    expect($test['b']())->toEqual('b');
+                    expect($test['c']())->toEqual('c');
 
                 });
 
-                context('when one factory is a closure with context', function () {
+                it('should not change the content of the compiled factories file', function () {
 
-                    it('should throw a LogicException', function () {
+                    $this->map->factories();
 
-                        foreach ([true, false] as $cache) {
-                            $map = new CompiledFactoryMap($this->delegate->get(), $cache, $this->path);
+                    $test = require $this->path;
 
-                            $context = 'context';
-
-                            $this->delegate->factories->returns([
-                                'factory1' => new TestCompilableFactory('factory1'),
-                                'factory2' => function () use ($context) {},
-                                'factory3' => new TestCompilableFactory('factory3'),
-                            ]);
-
-                            expect([$map, 'factories'])->toThrow(new LogicException);
-                        }
-
-                    });
+                    expect($test)->toBeAn('array');
+                    expect($test)->toHaveLength(3);
+                    expect($test['a']())->toEqual('a');
+                    expect($test['b']())->toEqual('b');
+                    expect($test['c']())->toEqual('c');
 
                 });
 
@@ -211,15 +238,285 @@ describe('CompiledFactoryMap', function () {
 
         });
 
-        context('when compilation file is not writable', function () {
+    });
 
-            it('should throw a RuntimeException', function () {
+    context('when the cache is set to false', function () {
 
-                foreach ([true, false] as $cache) {
-                    $map = new CompiledFactoryMap($this->delegate->get(), $cache, __DIR__ . '/non/exising/path/compiled.php');
+        beforeEach(function () {
 
-                    expect([$map, 'factories'])->toThrow(new RuntimeException);
-                }
+            $this->map = new CompiledFactoryMap($this->delegate->get(), false, $this->path);
+
+        });
+
+        it('should implement FactoryMapInterface', function () {
+
+            expect($this->map)->toBeAnInstanceOf(FactoryMapInterface::class);
+
+        });
+
+        describe('->factories()', function () {
+
+            context('when the compiled factories file does not exist', function () {
+
+                context('when the parent directory is not writable', function () {
+
+                    it('should throw a RuntimeException', function () {
+
+                        chmod($this->root, 0444);
+
+                        expect([$this->map, 'factories'])->toThrow(new RuntimeException);
+
+                    });
+
+                });
+
+                context('when the parent directory is writable', function () {
+
+                    context('when the array returned by the delegate ->factories() method is empty', function () {
+
+                        beforeEach(function () {
+
+                            $this->delegate->factories->returns([]);
+
+                        });
+
+                        it('should return an empty array', function () {
+
+                            $test = $this->map->factories();
+
+                            expect($test)->toEqual([]);
+
+                        });
+
+                        it('should write a compiled factories file returning an empty array', function () {
+
+                            $this->map->factories();
+
+                            expect(file_exists($this->path))->toBeTruthy();
+
+                            $test = require $this->path;
+
+                            expect($test)->toEqual([]);
+
+                        });
+
+                    });
+
+                    context('when the array returned by the delegate ->factories() method is not empty', function () {
+
+                        context('when all factories provided by the delegate are compilable', function () {
+
+                            beforeEach(function () {
+
+                                $this->delegate->factories->returns([
+                                    'id1' => $this->factory1 = new TestCompilableFactory('factory'),
+                                    'id2' => $this->factory2 = ['\\Test\\TestFactory', 'createStatic'],
+                                    'id3' => $this->factory3 = function () { return 'value'; },
+                                ]);
+
+                            });
+
+                            it('should return the array of factories provided by the delegate', function () {
+
+                                $test = $this->map->factories();
+
+                                expect($test)->toBeAn('array');
+                                expect($test)->toHaveLength(3);
+                                expect($test['id1'])->toEqual($this->factory1);
+                                expect($test['id2'])->toEqual($this->factory2);
+                                expect($test['id3']())->toEqual('value');
+
+                            });
+
+                            it('should write a compiled factory file returning the array of factories provided by the delegate', function () {
+
+                                $this->map->factories();
+
+                                expect(file_exists($this->path))->toBeTruthy();
+
+                                $test = require $this->path;
+
+                                expect($test)->toBeAn('array');
+                                expect($test)->toHaveLength(3);
+                                expect($test['id1'])->toEqual($this->factory1);
+                                expect($test['id2'])->toEqual($this->factory2);
+                                expect($test['id3']())->toEqual('value');
+
+                            });
+
+                        });
+
+                        context('when one factory provided by the delegate is not compilable', function () {
+
+                            beforeEach(function () {
+
+                                $context = 'context';
+
+                                $this->delegate->factories->returns([
+                                    'id1' => new TestCompilableFactory('factory1'),
+                                    'id2' => function () use ($context) {},
+                                    'id3' => new TestCompilableFactory('factory3'),
+                                ]);
+
+                            });
+
+                            it('should throw a LogicException', function () {
+
+                                expect([$this->map, 'factories'])->toThrow(new LogicException);
+
+                            });
+
+                            it('should not create a compiled factory file', function () {
+
+                                try { $this->map->factories(); }
+
+                                catch (Throwable $e) {}
+
+                                expect(file_exists($this->path))->toBeFalsy();
+
+                            });
+
+                        });
+
+                    });
+
+                });
+
+            });
+
+            context('when the compiled factories file exists', function () {
+
+                beforeEach(function () {
+
+                    file_put_contents($this->path, $this->contents);
+
+                });
+
+                context('when the compiled factory file is not writable', function () {
+
+                    it('should throw a RuntimeException', function () {
+
+                        chmod($this->path, 0444);
+
+                        expect([$this->map, 'factories'])->toThrow(new RuntimeException);
+
+                    });
+
+                });
+
+                context('when the compiled factory file is writable', function () {
+
+                    context('when the array returned by the delegate ->factories() method is empty', function () {
+
+                        beforeEach(function () {
+
+                            $this->delegate->factories->returns([]);
+
+                        });
+
+                        it('should return an empty array', function () {
+
+                            $test = $this->map->factories();
+
+                            expect($test)->toEqual([]);
+
+                        });
+
+                        it('should change the content of the compiled factories file so it returns an empty array', function () {
+
+                            $this->map->factories();
+
+                            $test = require $this->path;
+
+                            expect($test)->toEqual([]);
+
+                        });
+
+                    });
+
+                    context('when the array returned by the delegate ->factories() method is not empty', function () {
+
+                        context('when all factories provided by the delegate are compilable', function () {
+
+                            beforeEach(function () {
+
+                                $this->delegate->factories->returns([
+                                    'id1' => $this->factory1 = new TestCompilableFactory('factory'),
+                                    'id2' => $this->factory2 = ['\\Test\\TestFactory', 'createStatic'],
+                                    'id3' => $this->factory3 = function () { return 'value'; },
+                                ]);
+
+                            });
+
+                            it('should return the array of factories provided by the delegate', function () {
+
+                                $test = $this->map->factories();
+
+                                expect($test)->toBeAn('array');
+                                expect($test)->toHaveLength(3);
+                                expect($test['id1'])->toEqual($this->factory1);
+                                expect($test['id2'])->toEqual($this->factory2);
+                                expect($test['id3']())->toEqual('value');
+
+                            });
+
+                            it('should change the content of the compiled factory file returning the array of factories provided by the delegate', function () {
+
+                                $this->map->factories();
+
+                                $test = require $this->path;
+
+                                expect($test)->toBeAn('array');
+                                expect($test)->toHaveLength(3);
+                                expect($test['id1'])->toEqual($this->factory1);
+                                expect($test['id2'])->toEqual($this->factory2);
+                                expect($test['id3']())->toEqual('value');
+
+                            });
+
+                        });
+
+                        context('when one factory provided by the delegate is not compilable', function () {
+
+                            beforeEach(function () {
+
+                                $context = 'context';
+
+                                $this->delegate->factories->returns([
+                                    'id1' => new TestCompilableFactory('factory1'),
+                                    'id2' => function () use ($context) {},
+                                    'id3' => new TestCompilableFactory('factory3'),
+                                ]);
+
+                            });
+
+                            it('should throw a LogicException', function () {
+
+                                expect([$this->map, 'factories'])->toThrow(new LogicException);
+
+                            });
+
+                            it('should not change the content of the compiled factories file', function () {
+
+                                try { $this->map->factories(); }
+
+                                catch (Throwable $e) {}
+
+                                $test = require $this->path;
+
+                                expect($test)->toBeAn('array');
+                                expect($test)->toHaveLength(3);
+                                expect($test['a']())->toEqual('a');
+                                expect($test['b']())->toEqual('b');
+                                expect($test['c']())->toEqual('c');
+
+                            });
+
+                        });
+
+                    });
+
+                });
 
             });
 

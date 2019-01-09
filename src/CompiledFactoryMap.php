@@ -70,8 +70,6 @@ final class CompiledFactoryMap implements FactoryMapInterface
                 );
             }
 
-            $compiled = [];
-
             $factories = $this->map->factories();
 
             foreach ($factories as $id => $factory) {
@@ -89,7 +87,7 @@ final class CompiledFactoryMap implements FactoryMapInterface
             $contents = vsprintf('<?php%s%sreturn %s;', [
                 PHP_EOL,
                 PHP_EOL,
-                new ArrayStr($compiled),
+                new ArrayStr($compiled ?? []),
             ]);
 
             file_put_contents($this->path, $contents);
