@@ -118,7 +118,7 @@ EOT;
 
                                 $this->delegate->factories->returns([
                                     'id1' => $this->factory1 = new TestCompilableFactory('factory'),
-                                    'id2' => $this->factory2 = ['\\Test\\TestFactory', 'createStatic'],
+                                    'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                     'id3' => $this->factory3 = function () { return 'value'; },
                                 ]);
 
@@ -310,7 +310,7 @@ EOT;
 
                                 $this->delegate->factories->returns([
                                     'id1' => $this->factory1 = new TestCompilableFactory('factory'),
-                                    'id2' => $this->factory2 = ['\\Test\\TestFactory', 'createStatic'],
+                                    'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                     'id3' => $this->factory3 = function () { return 'value'; },
                                 ]);
 
@@ -442,7 +442,7 @@ EOT;
 
                                 $this->delegate->factories->returns([
                                     'id1' => $this->factory1 = new TestCompilableFactory('factory'),
-                                    'id2' => $this->factory2 = ['\\Test\\TestFactory', 'createStatic'],
+                                    'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                     'id3' => $this->factory3 = function () { return 'value'; },
                                 ]);
 
