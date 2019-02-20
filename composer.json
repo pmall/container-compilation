@@ -9,10 +9,10 @@
         "compilation"
     ],
     "license": "MIT",
-    "homepage": "https://github.com/quanta/container-compilation",
+    "homepage": "https://github.com/quantaphp/container-compilation",
     "support": {
-        "issues": "https://github.com/quanta/container-compilation/issues",
-        "source": "https://github.com/quanta/container-compilation"
+        "issues": "https://github.com/quantaphp/container-compilation/issues",
+        "source": "https://github.com/quantaphp/container-compilation"
     },
     "authors": [
         {
