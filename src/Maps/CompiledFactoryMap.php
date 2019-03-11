@@ -1,11 +1,10 @@
 <?php declare(strict_types=1);
 
-namespace Quanta\Container;
+namespace Quanta\Container\Maps;
 
 use SuperClosure\Analyzer\AstAnalyzer;
 
 use Quanta\Container\Utils;
-use Quanta\Container\Maps\FactoryMapInterface;
 use Quanta\Container\Factories\Compiler;
 use Quanta\Container\Factories\AstAnalyzerAdapter;
 

@@ -4,10 +4,10 @@ use function Eloquent\Phony\Kahlan\mock;
 
 use Psr\Container\ContainerInterface;
 
-use Quanta\Container\CompiledFactoryMap;
+use Quanta\Container\Maps\CompiledFactoryMap;
 use Quanta\Container\Maps\FactoryMapInterface;
 
-require_once __DIR__ . '/.test/classes.php';
+require_once __DIR__ . '/../.test/classes.php';
 
 describe('CompiledFactoryMap', function () {
 
@@ -15,7 +15,7 @@ describe('CompiledFactoryMap', function () {
 
         $this->delegate = mock(FactoryMapInterface::class);
 
-        $this->root = __DIR__ . '/.test/storage';
+        $this->root = __DIR__ . '/../.test/storage';
         $this->path = $this->root . '/factories.php';
 
         chmod($this->root, 0755);
