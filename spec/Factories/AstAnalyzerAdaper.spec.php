@@ -2,8 +2,8 @@
 
 use SuperClosure\Analyzer\AstAnalyzer;
 
-use Quanta\Container\Compilation\AstAnalyzerAdapter;
-use Quanta\Container\Compilation\ClosureCompilerInterface;
+use Quanta\Container\Factories\AstAnalyzerAdapter;
+use Quanta\Container\Factories\ClosureCompilerInterface;
 
 describe('AstAnalyzerAdapter', function () {
 
@@ -19,13 +19,13 @@ describe('AstAnalyzerAdapter', function () {
 
     });
 
-    describe('->compiled()', function () {
+    describe('->__invoke()', function () {
 
         context('when the given closure has no context', function () {
 
             it('should return a string representation of the given closure', function () {
 
-                $test = $this->compiler->compiled(function (string $x) {
+                $test = ($this->compiler)(function (string $x) {
                     $value = $x . ':value';
 
                     return $value;
@@ -50,7 +50,7 @@ EOT
                 $test = function () {
                     $context = 'context';
 
-                    $this->compiler->compiled(function () use ($context) {});
+                    ($this->compiler)(function () use ($context) {});
                 };
 
                 expect($test)->toThrow(new LogicException);

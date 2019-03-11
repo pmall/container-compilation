@@ -2,32 +2,14 @@
 
 use function Eloquent\Phony\Kahlan\mock;
 
-use org\bovigo\vfs\vfsStream;
-
-use Test\TestFactory;
-use Test\TestCompilableFactory;
+use Psr\Container\ContainerInterface;
 
 use Quanta\Container\CompiledFactoryMap;
-use Quanta\Container\FactoryMapInterface;
+use Quanta\Container\Maps\FactoryMapInterface;
 
 require_once __DIR__ . '/.test/classes.php';
 
 describe('CompiledFactoryMap', function () {
-
-    beforeEach(function () {
-
-        $this->contents = <<<'EOT'
-<?php
-
-return [
-    'a' => function () { return 'a'; },
-    'b' => function () { return 'b'; },
-    'c' => function () { return 'c'; },
-];
-
-EOT;
-
-    });
 
     beforeEach(function () {
 
@@ -63,6 +45,12 @@ EOT;
         });
 
         describe('->factories()', function () {
+
+            beforeEach(function () {
+
+                $this->container = mock(ContainerInterface::class);
+
+            });
 
             context('when the compiled factories file does not exits', function () {
 
@@ -117,7 +105,7 @@ EOT;
                             beforeEach(function () {
 
                                 $this->delegate->factories->returns([
-                                    'id1' => $this->factory1 = new TestCompilableFactory('factory'),
+                                    'id1' => $this->factory1 = new Test\TestCompilableFactory('factory'),
                                     'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                     'id3' => $this->factory3 = function () { return 'value'; },
                                 ]);
@@ -130,9 +118,9 @@ EOT;
 
                                 expect($test)->toBeAn('array');
                                 expect($test)->toHaveLength(3);
-                                expect($test['id1'])->toEqual($this->factory1);
-                                expect($test['id2'])->toEqual($this->factory2);
-                                expect($test['id3']())->toEqual('value');
+                                expect($test['id1']($this->container->get()))->toEqual('factory');
+                                expect($test['id2']($this->container->get()))->toEqual('static');
+                                expect($test['id3']($this->container->get()))->toEqual('value');
 
                             });
 
@@ -146,9 +134,9 @@ EOT;
 
                                 expect($test)->toBeAn('array');
                                 expect($test)->toHaveLength(3);
-                                expect($test['id1'])->toEqual($this->factory1);
-                                expect($test['id2'])->toEqual($this->factory2);
-                                expect($test['id3']())->toEqual('value');
+                                expect($test['id1']($this->container->get()))->toEqual('factory');
+                                expect($test['id2']($this->container->get()))->toEqual('static');
+                                expect($test['id3']($this->container->get()))->toEqual('value');
 
                             });
 
@@ -161,9 +149,9 @@ EOT;
                                 $context = 'context';
 
                                 $this->delegate->factories->returns([
-                                    'id1' => new TestCompilableFactory('factory1'),
+                                    'id1' => new Test\TestCompilableFactory('factory1'),
                                     'id2' => function () use ($context) {},
-                                    'id3' => new TestCompilableFactory('factory3'),
+                                    'id3' => new Test\TestCompilableFactory('factory3'),
                                 ]);
 
                             });
@@ -196,7 +184,17 @@ EOT;
 
                 beforeEach(function () {
 
-                    file_put_contents($this->path, $this->contents);
+                    file_put_contents($this->path, <<<'EOT'
+<?php
+
+return [
+    'a' => function () { return 'a'; },
+    'b' => function () { return 'b'; },
+    'c' => function () { return 'c'; },
+];
+
+EOT
+                    );
 
                 });
 
@@ -214,9 +212,9 @@ EOT;
 
                     expect($test)->toBeAn('array');
                     expect($test)->toHaveLength(3);
-                    expect($test['a']())->toEqual('a');
-                    expect($test['b']())->toEqual('b');
-                    expect($test['c']())->toEqual('c');
+                    expect($test['a']($this->container->get()))->toEqual('a');
+                    expect($test['b']($this->container->get()))->toEqual('b');
+                    expect($test['c']($this->container->get()))->toEqual('c');
 
                 });
 
@@ -228,9 +226,9 @@ EOT;
 
                     expect($test)->toBeAn('array');
                     expect($test)->toHaveLength(3);
-                    expect($test['a']())->toEqual('a');
-                    expect($test['b']())->toEqual('b');
-                    expect($test['c']())->toEqual('c');
+                    expect($test['a']($this->container->get()))->toEqual('a');
+                    expect($test['b']($this->container->get()))->toEqual('b');
+                    expect($test['c']($this->container->get()))->toEqual('c');
 
                 });
 
@@ -255,6 +253,12 @@ EOT;
         });
 
         describe('->factories()', function () {
+
+            beforeEach(function () {
+
+                $this->container = mock(ContainerInterface::class);
+
+            });
 
             context('when the compiled factories file does not exist', function () {
 
@@ -309,7 +313,7 @@ EOT;
                             beforeEach(function () {
 
                                 $this->delegate->factories->returns([
-                                    'id1' => $this->factory1 = new TestCompilableFactory('factory'),
+                                    'id1' => $this->factory1 = new Test\TestCompilableFactory('factory'),
                                     'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                     'id3' => $this->factory3 = function () { return 'value'; },
                                 ]);
@@ -322,9 +326,9 @@ EOT;
 
                                 expect($test)->toBeAn('array');
                                 expect($test)->toHaveLength(3);
-                                expect($test['id1'])->toEqual($this->factory1);
-                                expect($test['id2'])->toEqual($this->factory2);
-                                expect($test['id3']())->toEqual('value');
+                                expect($test['id1']($this->container->get()))->toEqual('factory');
+                                expect($test['id2']($this->container->get()))->toEqual('static');
+                                expect($test['id3']($this->container->get()))->toEqual('value');
 
                             });
 
@@ -338,9 +342,9 @@ EOT;
 
                                 expect($test)->toBeAn('array');
                                 expect($test)->toHaveLength(3);
-                                expect($test['id1'])->toEqual($this->factory1);
-                                expect($test['id2'])->toEqual($this->factory2);
-                                expect($test['id3']())->toEqual('value');
+                                expect($test['id1']($this->container->get()))->toEqual('factory');
+                                expect($test['id2']($this->container->get()))->toEqual('static');
+                                expect($test['id3']($this->container->get()))->toEqual('value');
 
                             });
 
@@ -353,9 +357,9 @@ EOT;
                                 $context = 'context';
 
                                 $this->delegate->factories->returns([
-                                    'id1' => new TestCompilableFactory('factory1'),
+                                    'id1' => new Test\TestCompilableFactory('factory1'),
                                     'id2' => function () use ($context) {},
-                                    'id3' => new TestCompilableFactory('factory3'),
+                                    'id3' => new Test\TestCompilableFactory('factory3'),
                                 ]);
 
                             });
@@ -388,7 +392,17 @@ EOT;
 
                 beforeEach(function () {
 
-                    file_put_contents($this->path, $this->contents);
+                    file_put_contents($this->path, <<<'EOT'
+<?php
+
+return [
+    'a' => function () { return 'a'; },
+    'b' => function () { return 'b'; },
+    'c' => function () { return 'c'; },
+];
+
+EOT
+                    );
 
                 });
 
@@ -441,7 +455,7 @@ EOT;
                             beforeEach(function () {
 
                                 $this->delegate->factories->returns([
-                                    'id1' => $this->factory1 = new TestCompilableFactory('factory'),
+                                    'id1' => $this->factory1 = new Test\TestCompilableFactory('factory'),
                                     'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                     'id3' => $this->factory3 = function () { return 'value'; },
                                 ]);
@@ -454,9 +468,9 @@ EOT;
 
                                 expect($test)->toBeAn('array');
                                 expect($test)->toHaveLength(3);
-                                expect($test['id1'])->toEqual($this->factory1);
-                                expect($test['id2'])->toEqual($this->factory2);
-                                expect($test['id3']())->toEqual('value');
+                                expect($test['id1']($this->container->get()))->toEqual('factory');
+                                expect($test['id2']($this->container->get()))->toEqual('static');
+                                expect($test['id3']($this->container->get()))->toEqual('value');
 
                             });
 
@@ -468,9 +482,9 @@ EOT;
 
                                 expect($test)->toBeAn('array');
                                 expect($test)->toHaveLength(3);
-                                expect($test['id1'])->toEqual($this->factory1);
-                                expect($test['id2'])->toEqual($this->factory2);
-                                expect($test['id3']())->toEqual('value');
+                                expect($test['id1']($this->container->get()))->toEqual('factory');
+                                expect($test['id2']($this->container->get()))->toEqual('static');
+                                expect($test['id3']($this->container->get()))->toEqual('value');
 
                             });
 
@@ -483,9 +497,9 @@ EOT;
                                 $context = 'context';
 
                                 $this->delegate->factories->returns([
-                                    'id1' => new TestCompilableFactory('factory1'),
+                                    'id1' => new Test\TestCompilableFactory('factory1'),
                                     'id2' => function () use ($context) {},
-                                    'id3' => new TestCompilableFactory('factory3'),
+                                    'id3' => new Test\TestCompilableFactory('factory3'),
                                 ]);
 
                             });
@@ -506,9 +520,9 @@ EOT;
 
                                 expect($test)->toBeAn('array');
                                 expect($test)->toHaveLength(3);
-                                expect($test['a']())->toEqual('a');
-                                expect($test['b']())->toEqual('b');
-                                expect($test['c']())->toEqual('c');
+                                expect($test['a']($this->container->get()))->toEqual('a');
+                                expect($test['b']($this->container->get()))->toEqual('b');
+                                expect($test['c']($this->container->get()))->toEqual('c');
 
                             });
 

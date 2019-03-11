@@ -4,7 +4,8 @@ namespace Test;
 
 use Psr\Container\ContainerInterface;
 
-use Quanta\Container\Compilation\Template;
+use Quanta\Container\Factories\Compiler;
+use Quanta\Container\Factories\CompiledFactory;
 use Quanta\Container\Factories\CompilableFactoryInterface;
 
 final class TestFactory
@@ -18,12 +19,12 @@ final class TestFactory
 
     public static function createStatic()
     {
-
+        return 'static';
     }
 
     public function create()
     {
-
+        return 'instance';
     }
 
     public function __invoke(ContainerInterface $container)
@@ -46,8 +47,10 @@ final class TestCompilableFactory implements CompilableFactoryInterface
 
     }
 
-    public function compiled(Template $template): string
+    public function compiled(Compiler $compiler): CompiledFactory
     {
-        return sprintf('new %s(\'%s\')', self::class, $this->name);
+        return new CompiledFactory('container', vsprintf('return \'%s\';', [
+            $this->name,
+        ]));
     }
 }

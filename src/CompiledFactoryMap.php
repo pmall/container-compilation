@@ -4,16 +4,17 @@ namespace Quanta\Container;
 
 use SuperClosure\Analyzer\AstAnalyzer;
 
-use Quanta\Container\Compilation\ArrayStr;
-use Quanta\Container\Compilation\CallableCompiler;
-use Quanta\Container\Compilation\AstAnalyzerAdapter;
+use Quanta\Container\Utils;
+use Quanta\Container\Maps\FactoryMapInterface;
+use Quanta\Container\Factories\Compiler;
+use Quanta\Container\Factories\AstAnalyzerAdapter;
 
 final class CompiledFactoryMap implements FactoryMapInterface
 {
     /**
      * The factory map to compile.
      *
-     * @var \Quanta\Container\FactoryMapInterface
+     * @var \Quanta\Container\Maps\FactoryMapInterface
      */
     private $map;
 
@@ -35,20 +36,20 @@ final class CompiledFactoryMap implements FactoryMapInterface
     private $path;
 
     /**
-     * The callable compiler.
+     * The factory compiler.
      *
      * It is created when the first factory is compiled.
      *
-     * @var null|\Quanta\Container\Compilation\CallableCompiler
+     * @var null|\Quanta\Container\Factories\Compiler
      */
     private $compiler;
 
     /**
      * Constructor.
      *
-     * @param \Quanta\Container\FactoryMapInterface $map
-     * @param bool                                  $cache
-     * @param string                                $path
+     * @param \Quanta\Container\Maps\FactoryMapInterface    $map
+     * @param bool                                          $cache
+     * @param string                                        $path
      */
     public function __construct(FactoryMapInterface $map, bool $cache, string $path)
     {
@@ -87,7 +88,7 @@ final class CompiledFactoryMap implements FactoryMapInterface
             $contents = vsprintf('<?php%s%sreturn %s;', [
                 PHP_EOL,
                 PHP_EOL,
-                new ArrayStr($compiled ?? []),
+                Utils::ArrayStr($compiled ?? []),
             ]);
 
             file_put_contents($this->path, $contents);
@@ -119,13 +120,13 @@ final class CompiledFactoryMap implements FactoryMapInterface
     public function compiled(callable $callable): string
     {
         if (! $this->compiler) {
-            $this->compiler = new CallableCompiler(
+            $this->compiler = new Compiler(
                 new AstAnalyzerAdapter(
                     new AstAnalyzer
                 )
             );
         }
 
-        return $this->compiler->compiled($callable);
+        return ($this->compiler)($callable);
     }
 }
