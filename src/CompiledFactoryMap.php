@@ -1,10 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace Quanta\Container\Maps;
+namespace Quanta\Container;
 
 use SuperClosure\Analyzer\AstAnalyzer;
 
-use Quanta\Container\Utils;
 use Quanta\Container\Factories\Compiler;
 use Quanta\Container\Factories\AstAnalyzerAdapter;
 
@@ -13,7 +12,7 @@ final class CompiledFactoryMap implements FactoryMapInterface
     /**
      * The factory map to compile.
      *
-     * @var \Quanta\Container\Maps\FactoryMapInterface
+     * @var \Quanta\Container\FactoryMapInterface
      */
     private $map;
 
@@ -46,9 +45,9 @@ final class CompiledFactoryMap implements FactoryMapInterface
     /**
      * Constructor.
      *
-     * @param \Quanta\Container\Maps\FactoryMapInterface    $map
-     * @param bool                                          $cache
-     * @param string                                        $path
+     * @param \Quanta\Container\FactoryMapInterface $map
+     * @param bool                                  $cache
+     * @param string                                $path
      */
     public function __construct(FactoryMapInterface $map, bool $cache, string $path)
     {

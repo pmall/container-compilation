@@ -44,7 +44,7 @@ final class TestCompilableFactory implements CompilableFactoryInterface
 
     public function __invoke(ContainerInterface $container)
     {
-
+        //
     }
 
     public function compiled(Compiler $compiler): CompiledFactory
