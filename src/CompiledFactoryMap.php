@@ -62,6 +62,10 @@ final class CompiledFactoryMap implements FactoryMapInterface
      */
     public function factories(): array
     {
+        if ($this->path == '') {
+            return $this->map->factories();
+        }
+
         if (! $this->cache || ! file_exists($this->path)) {
             if (! $this->isPathWritable()) {
                 throw new \RuntimeException(
