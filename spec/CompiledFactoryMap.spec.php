@@ -122,12 +122,6 @@ describe('CompiledFactoryMap', function () {
 
             describe('->factories()', function () {
 
-                beforeEach(function () {
-
-                    $this->container = mock(ContainerInterface::class);
-
-                });
-
                 context('when the compiled file does not exits', function () {
 
                     context('when the parent directory is not writable', function () {
@@ -180,8 +174,10 @@ describe('CompiledFactoryMap', function () {
 
                                 beforeEach(function () {
 
+                                    $this->container = mock(ContainerInterface::class);
+
                                     $this->delegate->factories->returns([
-                                        'id1' => $this->factory1 = new Test\TestCompilableFactory('factory'),
+                                        'id1' => $this->factory1 = new Test\TestFactory('factory'),
                                         'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                         'id3' => $this->factory3 = function () { return 'value'; },
                                     ]);
@@ -225,9 +221,9 @@ describe('CompiledFactoryMap', function () {
                                     $context = 'context';
 
                                     $this->delegate->factories->returns([
-                                        'id1' => new Test\TestCompilableFactory('factory1'),
+                                        'id1' => new Test\TestFactory('factory1'),
                                         'id2' => function () use ($context) {},
-                                        'id3' => new Test\TestCompilableFactory('factory3'),
+                                        'id3' => new Test\TestFactory('factory3'),
                                     ]);
 
                                 });
@@ -264,9 +260,9 @@ describe('CompiledFactoryMap', function () {
 <?php
 
 return [
-    'a' => function () { return 'a'; },
-    'b' => function () { return 'b'; },
-    'c' => function () { return 'c'; },
+    'id1' => function () { return 'factory1'; },
+    'id2' => function () { return 'factory2'; },
+    'id3' => function () { return 'factory3'; },
 ];
 
 EOT
@@ -288,9 +284,9 @@ EOT
 
                         expect($test)->toBeAn('array');
                         expect($test)->toHaveLength(3);
-                        expect($test['a']($this->container->get()))->toEqual('a');
-                        expect($test['b']($this->container->get()))->toEqual('b');
-                        expect($test['c']($this->container->get()))->toEqual('c');
+                        expect($test['id1']())->toEqual('factory1');
+                        expect($test['id2']())->toEqual('factory2');
+                        expect($test['id3']())->toEqual('factory3');
 
                     });
 
@@ -302,9 +298,9 @@ EOT
 
                         expect($test)->toBeAn('array');
                         expect($test)->toHaveLength(3);
-                        expect($test['a']($this->container->get()))->toEqual('a');
-                        expect($test['b']($this->container->get()))->toEqual('b');
-                        expect($test['c']($this->container->get()))->toEqual('c');
+                        expect($test['id1']())->toEqual('factory1');
+                        expect($test['id2']())->toEqual('factory2');
+                        expect($test['id3']())->toEqual('factory3');
 
                     });
 
@@ -329,12 +325,6 @@ EOT
             });
 
             describe('->factories()', function () {
-
-                beforeEach(function () {
-
-                    $this->container = mock(ContainerInterface::class);
-
-                });
 
                 context('when the compiled file does not exist', function () {
 
@@ -388,8 +378,10 @@ EOT
 
                                 beforeEach(function () {
 
+                                    $this->container = mock(ContainerInterface::class);
+
                                     $this->delegate->factories->returns([
-                                        'id1' => $this->factory1 = new Test\TestCompilableFactory('factory'),
+                                        'id1' => $this->factory1 = new Test\TestFactory('factory'),
                                         'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                         'id3' => $this->factory3 = function () { return 'value'; },
                                     ]);
@@ -433,9 +425,9 @@ EOT
                                     $context = 'context';
 
                                     $this->delegate->factories->returns([
-                                        'id1' => new Test\TestCompilableFactory('factory1'),
+                                        'id1' => new Test\TestFactory('factory1'),
                                         'id2' => function () use ($context) {},
-                                        'id3' => new Test\TestCompilableFactory('factory3'),
+                                        'id3' => new Test\TestFactory('factory3'),
                                     ]);
 
                                 });
@@ -472,9 +464,9 @@ EOT
 <?php
 
 return [
-    'a' => function () { return 'a'; },
-    'b' => function () { return 'b'; },
-    'c' => function () { return 'c'; },
+    'id1' => function () { return 'factory1'; },
+    'id2' => function () { return 'factory2'; },
+    'id3' => function () { return 'factory3'; },
 ];
 
 EOT
@@ -530,8 +522,10 @@ EOT
 
                                 beforeEach(function () {
 
+                                    $this->container = mock(ContainerInterface::class);
+
                                     $this->delegate->factories->returns([
-                                        'id1' => $this->factory1 = new Test\TestCompilableFactory('factory'),
+                                        'id1' => $this->factory1 = new Test\TestFactory('factory'),
                                         'id2' => $this->factory2 = ['\\Test\\TestFactory'::class, 'createStatic'],
                                         'id3' => $this->factory3 = function () { return 'value'; },
                                     ]);
@@ -573,9 +567,9 @@ EOT
                                     $context = 'context';
 
                                     $this->delegate->factories->returns([
-                                        'id1' => new Test\TestCompilableFactory('factory1'),
+                                        'id1' => new Test\TestFactory('factory1'),
                                         'id2' => function () use ($context) {},
-                                        'id3' => new Test\TestCompilableFactory('factory3'),
+                                        'id3' => new Test\TestFactory('factory3'),
                                     ]);
 
                                 });
@@ -596,9 +590,9 @@ EOT
 
                                     expect($test)->toBeAn('array');
                                     expect($test)->toHaveLength(3);
-                                    expect($test['a']($this->container->get()))->toEqual('a');
-                                    expect($test['b']($this->container->get()))->toEqual('b');
-                                    expect($test['c']($this->container->get()))->toEqual('c');
+                                    expect($test['id1']())->toEqual('factory1');
+                                    expect($test['id2']())->toEqual('factory2');
+                                    expect($test['id3']())->toEqual('factory3');
 
                                 });
 

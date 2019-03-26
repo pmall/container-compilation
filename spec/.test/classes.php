@@ -8,7 +8,7 @@ use Quanta\Container\Factories\Compiler;
 use Quanta\Container\Factories\CompiledFactory;
 use Quanta\Container\Factories\CompilableFactoryInterface;
 
-final class TestFactory
+final class TestFactory implements CompilableFactoryInterface
 {
     private $name;
 
@@ -25,21 +25,6 @@ final class TestFactory
     public function create()
     {
         return 'instance';
-    }
-
-    public function __invoke(ContainerInterface $container)
-    {
-        //
-    }
-}
-
-final class TestCompilableFactory implements CompilableFactoryInterface
-{
-    private $name;
-
-    public function __construct(string $name)
-    {
-        $this->name = $name;
     }
 
     public function __invoke(ContainerInterface $container)
