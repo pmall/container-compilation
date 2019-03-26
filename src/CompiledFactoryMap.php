@@ -121,10 +121,11 @@ final class CompiledFactoryMap implements FactoryMapInterface
         $tmp = tempnam(sys_get_temp_dir(), 'quanta');
 
         if ($tmp !== false) {
-            file_put_contents($tmp, vsprintf('<?php%s%sreturn %s;', [
+            file_put_contents($tmp, vsprintf('<?php%s%sreturn %s;%s', [
                 PHP_EOL,
                 PHP_EOL,
                 Utils::ArrayStr($compiled ?? []),
+                PHP_EOL,
             ]));
 
             rename($tmp, $this->path);
