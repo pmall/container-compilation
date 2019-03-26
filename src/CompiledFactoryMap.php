@@ -87,13 +87,7 @@ final class CompiledFactoryMap implements FactoryMapInterface
                 }
             }
 
-            $contents = vsprintf('<?php%s%sreturn %s;', [
-                PHP_EOL,
-                PHP_EOL,
-                Utils::ArrayStr($compiled ?? []),
-            ]);
-
-            file_put_contents($this->path, $contents);
+            $this->write($compiled ?? []);
         }
 
         return require $this->path;
@@ -111,6 +105,30 @@ final class CompiledFactoryMap implements FactoryMapInterface
         }
 
         return is_writable($this->path);
+    }
+
+    /**
+     * Write the given compiled factories array to a unique temporary file and
+     * move it to the compiled file path.
+     *
+     * Is this safe ?
+     *
+     * @param string[] $compiled
+     * @return void
+     */
+    private function write(array $compiled): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'quanta');
+
+        if ($tmp !== false) {
+            file_put_contents($tmp, vsprintf('<?php%s%sreturn %s;', [
+                PHP_EOL,
+                PHP_EOL,
+                Utils::ArrayStr($compiled ?? []),
+            ]));
+
+            rename($tmp, $this->path);
+        }
     }
 
     /**
